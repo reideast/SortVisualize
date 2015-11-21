@@ -78,6 +78,7 @@ namespace SortVisualize
                 {
                     bars[j - 1].Fill = green;
                     redrawRectangles(data);
+                    //http://geekswithblogs.net/NewThingsILearned/archive/2008/08/25/refresh--update-wpf-controls.aspx
                     SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
                     Thread.Sleep(DELAY);
 
@@ -98,32 +99,6 @@ namespace SortVisualize
                         SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
                         Thread.Sleep(DELAY);
                         bars[j].Fill = blue;
-
-
-
-                        // https://msdn.microsoft.com/en-us/library/cc189069(VS.95).aspx
-                        //Storyboard storyboard = new Storyboard();
-                        ////SortCanvas.Resources.Add("unique_id", storyboard);
-                        ////ColorAnimation animation = new ColorAnimation();
-                        //DoubleAnimation animateThis = new DoubleAnimation();
-                        //DoubleAnimation animateNext = new DoubleAnimation();
-                        //Duration quarterSecond = new Duration(TimeSpan.FromSeconds(1));
-                        //storyboard.Children.Add(animateThis);
-                        //storyboard.Children.Add(animateNext);
-                        //storyboard.Duration = quarterSecond;
-
-
-                        //Storyboard.SetTarget(animateThis, bars[j]);
-                        //Storyboard.SetTarget(animateNext, bars[j + 1]);
-                        //Storyboard.SetTargetProperty(animateThis, new PropertyPath("(Width)"));
-                        //Storyboard.SetTargetProperty(animateNext, new PropertyPath("(Width)"));
-                        //animateThis.To = MIN_WIDTH + (data[j] * WIDTH_SCALE);
-                        //animateNext.To = MIN_WIDTH + (data[j + 1] * WIDTH_SCALE);
-                        //storyboard.Begin();
-                        //while (storyboard.GetCurrentState() != ClockState.Stopped)
-                        //    ;
-
-
                     }
 
 
