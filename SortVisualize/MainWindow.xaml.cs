@@ -34,7 +34,7 @@ namespace SortVisualize
         private const int MIN_WIDTH = 2;
         private int HEIGHT;
         private double WIDTH_SCALE;
-        private const int DELAY = 200;
+        private const int DELAY = 100;
 
         int count = 0;
 
@@ -51,6 +51,8 @@ namespace SortVisualize
 
         private void BubbleSort_Click(object sender, RoutedEventArgs e)
         {
+            BubbleSort.IsEnabled = false;
+
             Random dice = new Random(); //default constructor is system clock-dependant seed
 
             for (int i = 0; i < NUM_ITEMS; i++)
@@ -95,7 +97,7 @@ namespace SortVisualize
                         redrawRectangles(data);
                         SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
                         Thread.Sleep(DELAY);
-                        bars[j - 1].Fill = blue;
+                        bars[j].Fill = blue;
 
 
 
@@ -134,7 +136,7 @@ namespace SortVisualize
                 }
             }
 
-
+            BubbleSort.IsEnabled = true;
         }
         private static Action emptyDelegate = delegate () { };
 
