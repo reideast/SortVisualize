@@ -33,7 +33,7 @@ namespace SortVisualize
         private const int ZERO_WIDTH = 2;
         private int HEIGHT;
         private double WIDTH_SCALE;
-        private const int ANIMATION_DELAY = 100; //milliseconds
+        private const int ANIMATION_DELAY = 25; //milliseconds
         
         private Rectangle[] bars;
         private TextBox[] textBoxes;
@@ -59,24 +59,26 @@ namespace SortVisualize
                 SortDataBubble(ref data, ref dataColors);
             };
             Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quits
             //MessageBox.Show("The GUI thread is going to t.Start(): " + System.Threading.Thread.CurrentThread.ManagedThreadId);
             t.Start();
 
-
+            //syncRectanglesToData();
             //BubbleSort.IsEnabled = true;
         }
-        //private static Action emptyDelegate = delegate () { };
 
 
         private void SortDataBubble(ref int[] data, ref SolidColorBrush[] colors)
         {
             //MessageBox.Show("Yes, this thread actually launched. " + System.Threading.Thread.CurrentThread.ManagedThreadId);
             int temp;
-            for (int i = 1; i < NUM_ITEMS; i++)
+            int total = data.Length;
+            for (int i = 1; i < total; i++)
             {
-                for (int j = 1; j < NUM_ITEMS - i + 1; j++)
+                for (int j = 1; j < total - i + 1; j++)
                 {
                     colors[j - 1] = green;
+                    //http://stackoverflow.com/questions/9732709/the-calling-thread-cannot-access-this-object-because-a-different-thread-owns-it
                     this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                     Thread.Sleep(ANIMATION_DELAY);
 
