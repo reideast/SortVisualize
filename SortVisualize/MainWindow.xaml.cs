@@ -38,6 +38,7 @@ namespace SortVisualize
         private Rectangle[] bars;
         private TextBox[] textBoxes;
         private int[] data; //CHANGE THIS TO A local variable for each sort type?
+        private SolidColorBrush[] dataColors;
         private Random dice = new Random(); //default constructor is system clock-dependent seed
 
         public MainWindow()
@@ -50,61 +51,79 @@ namespace SortVisualize
         {
             BubbleSort.IsEnabled = false; //gray-out button to show user that sort is in progress
 
-            for (int i = 0; i < NUM_ITEMS; i++)
-            {
-                data[i] = dice.Next() % (MAX_VALUE + 1);
-            }
-            syncRectanglesToData(data);
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
 
+            ThreadStart threadStart = delegate ()
+            {
+                SortDataBubble(ref data, ref dataColors);
+            };
+            Thread t = new Thread(threadStart);
+            //MessageBox.Show("The GUI thread is going to t.Start(): " + System.Threading.Thread.CurrentThread.ManagedThreadId);
+            t.Start();
+
+
+            //BubbleSort.IsEnabled = true;
+        }
+        //private static Action emptyDelegate = delegate () { };
+
+
+        private void SortDataBubble(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            //MessageBox.Show("Yes, this thread actually launched. " + System.Threading.Thread.CurrentThread.ManagedThreadId);
             int temp;
             for (int i = 1; i < NUM_ITEMS; i++)
             {
                 for (int j = 1; j < NUM_ITEMS - i + 1; j++)
                 {
-                    bars[j - 1].Fill = green;
-                    //redrawRectangles(data);
-                    SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
+                    colors[j - 1] = green;
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                     Thread.Sleep(ANIMATION_DELAY);
 
                     if (data[j - 1] > data[j])
                     {
-                        bars[j].Fill = blue;
-                        //redrawRectangles(data);
-                        SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
+                        colors[j] = blue;
+                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                         Thread.Sleep(ANIMATION_DELAY);
 
                         temp = data[j - 1];
                         data[j - 1] = data[j];
                         data[j] = temp;
 
-                        bars[j].Fill = green;
-                        bars[j - 1].Fill = blue;
-                        syncRectanglesToData(data);
-                        SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
+                        colors[j] = green;
+                        colors[j - 1] = blue;
+                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                         Thread.Sleep(ANIMATION_DELAY);
-                        bars[j].Fill = violet;
+                        colors[j] = violet;
                     }
-                    bars[j - 1].Fill = violet;
+                    colors[j - 1] = violet;
                 }
             }
-
-            BubbleSort.IsEnabled = true;
+            this.Dispatcher.Invoke((Action)(() => { BubbleSort.IsEnabled = true; }));
         }
-        private static Action emptyDelegate = delegate () { };
-        
+
 
         private void MergeSort_Click(object sender, RoutedEventArgs e)
         {
-            data[4] = 50;
-            if (bars[4].Fill == green)
-                bars[4].Fill = violet;
-            else
-                bars[4].Fill = green;
-            syncRectanglesToData(data);
+            MergeSort.IsEnabled = false;
+
+            MergeSort.IsEnabled = true;
+        }
+
+        private void populateDataRandomly(ref int[] data)
+        {
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = dice.Next() % (MAX_VALUE + 1);
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            //Upon loading, the window must determine the size of controls,
+            //and then programatically create Rectangles and TextBoxes for each item,
+            //placing on the grid in the correct location
+
             updateDrawingScale();
 
             //update Grid.RowDefinition height for NUM_ITEMS
@@ -114,40 +133,43 @@ namespace SortVisualize
             textBoxes = new TextBox[NUM_ITEMS];
             for (int i = 0; i < NUM_ITEMS; i++)
             {
+                //create a Row in the proper Grid for each text box
                 RowDefinition rowDef = new RowDefinition();
                 rowDef.Height = new GridLength(2.0 * HEIGHT);
                 TxtBoxGrid.RowDefinitions.Add(rowDef);
+                
                 textBoxes[i] = new TextBox();
                 textBoxes[i].TextAlignment = TextAlignment.Right;
                 TxtBoxGrid.Children.Add(textBoxes[i]);
-                textBoxes[i].SetValue(Grid.RowProperty, i);
+                textBoxes[i].SetValue(Grid.RowProperty, i); //attach i to the Grid.Row property, ie. <TextBox Grid.Row="i"/>
             }
-
-
+            
             bars = new Rectangle[NUM_ITEMS];
-
+            dataColors = new SolidColorBrush[NUM_ITEMS];
             for (int i = 0; i < NUM_ITEMS; i++)
             {
                 bars[i] = new Rectangle();
-                bars[i].Fill = violet;
+                dataColors[i] = violet;
+                //bars[i].Fill = violet;
                 SortCanvas.Children.Add(bars[i]);
             }
 
-            syncRectanglesToData(data);
+            syncRectanglesToData();
 
-            this.SizeChanged += Window_SizeChanged;
+            this.SizeChanged += Window_SizeChanged; //add event handler now that the Window is loaded
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
                 updateDrawingScale();
-                syncRectanglesToData(data);
+                syncRectanglesToData();
         }
 
-        private void syncRectanglesToData(int[] data)
+        private void syncRectanglesToData()
         {
             for (int i = 0; i < NUM_ITEMS; i++)
             {
+                bars[i].Fill = dataColors[i];
                 bars[i].Width = ZERO_WIDTH + (data[i] * WIDTH_SCALE);
                 bars[i].Height = HEIGHT;
                 Canvas.SetLeft(bars[i], HEIGHT); //set <Rectangle Canvas.Left="HEIGHT"/> property with HEIGHT as left margin
