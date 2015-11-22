@@ -249,12 +249,16 @@ namespace SortVisualize
 
         private void mergeSortRecursive(int indexStart, int indexEnd, ref int[] dataSlice, ref SolidColorBrush[] colors)
         {
+            //How much does it cost to do this test on every recursion?
+            //If the initial call is error check, and if my math for the indices on the recursive calls is correct, no error checking is needed.
+            if (indexStart > indexEnd || indexStart < 0 || indexEnd >= dataSlice.Length)
+                throw new ArgumentOutOfRangeException("Merge Sort Recursive: Indices must be in order, above 0, and within the bounds of the array.");
+
+            //show what range is being tested in this recursion
             for (int i = indexStart; i <= indexEnd; i++)
                 colors[i] = green;
             this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
             Thread.Sleep(ANIMATION_DELAY);
-            for (int i = indexStart; i <= indexEnd; i++)
-                colors[i] = violet;
 
             if (indexStart == indexEnd)
             {
@@ -262,9 +266,14 @@ namespace SortVisualize
             }
             else
             {
-                //TODO: I haven't even thought about if my "halving" math is correct here!
-                mergeSortRecursive(indexStart, (indexEnd - indexStart) / 2, ref dataSlice, ref colors);
-                mergeSortRecursive((indexEnd - indexStart) / 2 + 1, indexEnd, ref dataSlice, ref colors);
+                for (int i = indexStart; i <= indexEnd; i++)
+                    colors[i] = violet;
+                //double checked math with example [0-19], works for odd and even integers
+                mergeSortRecursive(indexStart, (indexEnd - indexStart) / 2 + indexStart, ref dataSlice, ref colors);
+                mergeSortRecursive((indexEnd - indexStart) / 2 + indexStart + 1, indexEnd, ref dataSlice, ref colors);
+
+                //TODO: merge
+                //pointer math for each array?
             }
         }
 
