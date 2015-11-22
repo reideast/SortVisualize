@@ -41,9 +41,12 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="10*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button x:Name="BubbleSort" Content="_Bubble Sort" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Click="BubbleSort_Click"/>
-            <Button x:Name="MergeSort" Content="_Merge Sort" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Click="MergeSort_Click"/>
+            <Button x:Name="BubbleSort" Content="_Bubble Sort" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="BubbleSort_Click"/>
+            <Button x:Name="SelectionSort" Content="_Selection Sort" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="SelectionSort_Click"/>
+            <Button x:Name="MergeSort" Content="_Merge Sort" Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="MergeSort_Click"/>
         </Grid>
     </Grid>
 </Window>
