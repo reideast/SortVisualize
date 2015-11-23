@@ -24,24 +24,22 @@ namespace SortVisualize
     public partial class MainWindow : Window
     {
         //private Color blue = Colors.AliceBlue;
-        private SolidColorBrush blue = new SolidColorBrush(Colors.BlueViolet);
-        private SolidColorBrush blue_light = new SolidColorBrush(Colors.CornflowerBlue);
+        private SolidColorBrush violet = new SolidColorBrush(Colors.BlueViolet);
+        private SolidColorBrush blue = new SolidColorBrush(Colors.CornflowerBlue);
         private SolidColorBrush green = new SolidColorBrush(Colors.SpringGreen);
-        private SolidColorBrush yellow = new SolidColorBrush(Colors.GreenYellow);
 
         private const int NUM_ITEMS = 20;
         private const int MAX_VALUE = 100;
-        private const int MIN_WIDTH = 2;
+        private const int ZERO_WIDTH = 2;
         private int HEIGHT;
         private double WIDTH_SCALE;
-        private const int DELAY = 100;
-
-        int count = 0;
-
+        private const int ANIMATION_DELAY = 200; //milliseconds
 
         private Rectangle[] bars;
         private TextBox[] textBoxes;
-        private int[] data; //CHANGE THIS TO A local variable for each sort type!
+        private int[] data; //CHANGE THIS TO A local variable for each sort type?
+        private SolidColorBrush[] dataColors;
+        private Random dice = new Random(); //default constructor is system clock-dependent seed
 
         public MainWindow()
         {
@@ -51,141 +49,375 @@ namespace SortVisualize
 
         private void BubbleSort_Click(object sender, RoutedEventArgs e)
         {
-            BubbleSort.IsEnabled = false;
+            BubbleSort.IsEnabled = false; //gray-out button to show user that sort is in progress
 
-            Random dice = new Random(); //default constructor is system clock-dependant seed
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
 
-            for (int i = 0; i < NUM_ITEMS; i++)
+            ThreadStart threadStart = delegate ()
             {
-                data[i] = dice.Next() % MAX_VALUE;
-            }
-            //FOR TIMER TESTING: redrawRectangles(data);
-            MessageBox.Show("pause");
+                SortDataBubble(ref data, ref dataColors);
+            };
+            Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quits
+            //MessageBox.Show("The GUI thread is going to t.Start(): " + System.Threading.Thread.CurrentThread.ManagedThreadId);
+            t.Start();
+
+            //syncRectanglesToData();
+            //BubbleSort.IsEnabled = true;
+        }
 
 
-            //textBoxes[count++].Text = Thread.CurrentThread.ManagedThreadId.ToString();
-            //System.Timers.Timer myTimer = new System.Timers.Timer(1000.0);
-            //myTimer.SynchronizingObject = this;
-            //myTimer.Elapsed += myTimer_Elapsed;
-            //myTimer.Start();
-
-
-
+        private void SortDataBubble(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            //MessageBox.Show("Yes, this thread actually launched. " + System.Threading.Thread.CurrentThread.ManagedThreadId);
             int temp;
-            for (int i = 1; i < NUM_ITEMS; i++)
+            int total = data.Length;
+            bool swapOccured = true;
+            for (int i = 1; i < total && swapOccured; i++)
             {
-                for (int j = 1; j < NUM_ITEMS - i + 1; j++)
+                swapOccured = false;
+                for (int j = 1; j < total - i + 1; j++)
                 {
-                    bars[j - 1].Fill = green;
-                    redrawRectangles(data);
-                    //http://geekswithblogs.net/NewThingsILearned/archive/2008/08/25/refresh--update-wpf-controls.aspx
-                    SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
-                    Thread.Sleep(DELAY);
+                    colors[j] = blue;
+                    colors[j - 1] = blue;
+                    // http://stackoverflow.com/questions/9732709/the-calling-thread-cannot-access-this-object-because-a-different-thread-owns-it
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
 
                     if (data[j - 1] > data[j])
                     {
-                        bars[j].Fill = blue_light;
-                        //redrawRectangles(data);
-                        SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
-                        Thread.Sleep(DELAY);
-
+                        swapOccured = true;
                         temp = data[j - 1];
                         data[j - 1] = data[j];
                         data[j] = temp;
 
-                        bars[j].Fill = green;
-                        bars[j - 1].Fill = blue_light;
-                        redrawRectangles(data);
-                        SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
-                        Thread.Sleep(DELAY);
-                        bars[j].Fill = blue;
+                        colors[j] = green;
+                        colors[j - 1] = green;
+                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                        Thread.Sleep(ANIMATION_DELAY);
                     }
+                    colors[j] = violet;
+                    colors[j - 1] = violet;
+                }
+                colors[total - i] = blue;
+            }
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            this.Dispatcher.Invoke((Action)(() => { BubbleSort.IsEnabled = true; }));
+        }
+
+        private void CombSort_Click(object sender, RoutedEventArgs e)
+        {
+            CombSort.IsEnabled = false; //gray-out button to show user that sort is in progress
+
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
+
+            ThreadStart threadStart = delegate () { SortDataComb(ref data, ref dataColors); };
+            Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quitst.Start();
+            t.Start();
+        }
 
 
-                    //MessageBox.Show(string.Format("{0} bars[j].width = {1}\n{2} bars[j+1].width = {3}", data[j], ((bars[j].Width - MIN_WIDTH) / WIDTH_SCALE), data[j + 1], ((bars[j + 1].Width - MIN_WIDTH) / WIDTH_SCALE)));
-                    //redrawRectangles(data);
+        private void SortDataComb(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            // Comb sort implemented via algorithm on https://en.wikipedia.org/wiki/Comb_sort
+            int gap = data.Length; //distance between items being compared (note: starts at Length, but first loop will actually shrink it down to gap/shrinkFactor, so no indexOutOfBounds possible)
+            double shrinkFactor = 1.3; // optimal shrink size from algorithm creators
 
-                    //SortCanvas.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, emptyDelegate);
-                    //Thread.Sleep(DELAY);
-                    bars[j - 1].Fill = blue;
+            int temp;
+            bool swapOccured = true;
+            while (!(gap == 1 && !swapOccured)) // only stop when gap has reached 1 and there are no more swaps
+            {
+                gap = (int)(gap / shrinkFactor); // reduce gap between items being compared to an integer value....
+                if (gap < 1) gap = 1; //...which is always 1 or more
+
+                swapOccured = false;
+                for (int i = 0; i + gap < data.Length; i++) //loop through, looking at indices [i] and [gap more than i]
+                {
+                    colors[i] = blue;
+                    colors[i + gap] = blue;
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+
+                    if (data[i] > data[i + gap])
+                    {
+                        swapOccured = true;
+                        temp = data[i];
+                        data[i] = data[i + gap];
+                        data[i + gap] = temp;
+
+                        colors[i] = green;
+                        colors[i + gap] = green;
+                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                        Thread.Sleep(ANIMATION_DELAY);
+                    }
+                    colors[i] = violet;
+                    colors[i + gap] = violet;
                 }
             }
-
-            BubbleSort.IsEnabled = true;
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            this.Dispatcher.Invoke((Action)(() => { CombSort.IsEnabled = true; }));
         }
-        private static Action emptyDelegate = delegate () { };
 
-        private void myTimer_Elapsed(object sender, ElapsedEventArgs e)
+
+        private void SelectionSort_Click(object sender, RoutedEventArgs e)
         {
-            //textBoxes[count++].Text = Thread.CurrentThread.ManagedThreadId.ToString();
-            Thread.Sleep(2000);
-            System.Diagnostics.Debug.WriteLine(Thread.CurrentThread.ManagedThreadId);
+            SelectionSort.IsEnabled = false;
+
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
+
+            ThreadStart threadStart = delegate ()
+            {
+                SortDataSelection(ref data, ref dataColors);
+            };
+            Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quits
+            t.Start();
+        }
+
+        private void SortDataSelection(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            int temp;
+            int largestIndex;
+            int total = data.Length;
+            for (int i = 0; i < total; i++)
+            {
+                largestIndex = 0;
+                colors[largestIndex] = green;
+                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                Thread.Sleep(ANIMATION_DELAY);
+
+                for (int j = 1; j < total - i; j++)
+                {
+                    colors[j] = blue;
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+
+                    if (data[j] >= data[largestIndex])
+                    {
+                        colors[largestIndex] = violet;
+                        largestIndex = j;
+                        colors[largestIndex] = green;
+                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                        Thread.Sleep(ANIMATION_DELAY);
+                    }
+                    else
+                    {
+                        colors[j] = violet;
+                    }
+                }
+
+                if (largestIndex != total - i - 1)
+                {
+                    colors[total - i - 1] = green;
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+
+                    temp = data[total - i - 1];
+                    data[total - i - 1] = data[largestIndex];
+                    data[largestIndex] = temp;
+                }
+                colors[largestIndex] = violet;
+                colors[total - i - 1] = blue; //set the location we just put the largest selected item into "blue" for inactive
+            }
+
+            for (int i = 0; i < total; i++)
+                colors[i] = violet;
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            this.Dispatcher.Invoke((Action)(() => { SelectionSort.IsEnabled = true; }));
+
         }
 
         private void MergeSort_Click(object sender, RoutedEventArgs e)
         {
-            bars[4].Width = MIN_WIDTH + (50 * WIDTH_SCALE);
-            if (bars[4].Fill == green)
-                bars[4].Fill = blue;
+            MergeSort.IsEnabled = false;
+
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
+
+            ThreadStart threadStart = delegate ()
+            {
+                SortDataMerge(ref data, ref dataColors);
+            };
+            Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quits
+            t.Start();
+        }
+
+        private void SortDataMerge(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            mergeSortRecursive(0, data.Length - 1, ref data, ref colors);
+
+
+            for (int i = 0; i < data.Length; i++)
+                colors[i] = violet;
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            this.Dispatcher.Invoke((Action)(() => { MergeSort.IsEnabled = true; }));
+
+        }
+
+        private void mergeSortRecursive(int indexStart, int indexEnd, ref int[] dataSlice, ref SolidColorBrush[] colors)
+        {
+            //How much does it cost to do this test on every recursion?
+            //If the initial call is error check, and if my math for the indices on the recursive calls is correct, no error checking is needed.
+            if (indexStart > indexEnd || indexStart < 0 || indexEnd >= dataSlice.Length)
+                throw new ArgumentOutOfRangeException("Merge Sort Recursive: Indices must be in order, above 0, and within the bounds of the array.");
+
+            //show what range is being tested in this recursion
+            for (int i = indexStart; i <= indexEnd; i++)
+                colors[i] = green;
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            Thread.Sleep(ANIMATION_DELAY);
+
+            if (indexStart == indexEnd)
+            {
+                return;
+            }
             else
-                bars[4].Fill = green;
-            redrawRectangles(data);
+            {
+                for (int i = indexStart; i <= indexEnd; i++)
+                    colors[i] = violet;
+                //double checked math with example [0-19], works for odd and even integers
+                mergeSortRecursive(indexStart, (indexEnd - indexStart) / 2 + indexStart, ref dataSlice, ref colors);
+                mergeSortRecursive((indexEnd - indexStart) / 2 + indexStart + 1, indexEnd, ref dataSlice, ref colors);
+
+
+                for (int i = indexStart; i <= indexEnd; i++)
+                    colors[i] = green;
+                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                Thread.Sleep(ANIMATION_DELAY);
+
+                //merge using temporary array
+                int lower = indexStart;
+                int lowerMax = (indexEnd - indexStart) / 2 + indexStart;
+                int upper = (indexEnd - indexStart) / 2 + indexStart + 1;
+                int upperMax = indexEnd;
+
+                //pick out items in order
+                int[] properValues = new int[indexEnd - indexStart + 1];
+                int[] properOrder = new int[indexEnd - indexStart + 1]; //for animation purposes: to remember where the values are in the original array
+                for (int i = 0; i < properOrder.Length; i++)
+                {
+                    if ((upper > upperMax) || (lower <= lowerMax && data[lower] <= data[upper]))
+                    {
+                        properValues[i] = data[lower];
+                        properOrder[i] = lower;
+                        lower++;
+                    }
+                    else
+                    {
+                        properValues[i] = data[upper];
+                        properOrder[i] = upper;
+                        upper++;
+                    }
+                }
+
+                //wipe out visualization of values to show that they are being placed back in
+                for (int i = indexStart; i <= indexEnd; i++)
+                {
+                    data[i] = 0;
+                    colors[i] = green;
+                }
+                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                Thread.Sleep(ANIMATION_DELAY);
+
+                for (int i = 0; i < properValues.Length; i++)
+                {
+                    colors[i + indexStart] = blue;
+                    data[i + indexStart] = properValues[i];
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+
+                    //MessageBox.Show("");
+                }
+
+                //pointer math for each array?
+            }
+        }
+
+        private string printArray(int[] arr)
+        {
+            StringBuilder result = new StringBuilder();
+            foreach (int item in arr)
+                result.Append(item + ",");
+            return result.ToString();
+        }
+
+        private void populateDataRandomly(ref int[] data)
+        {
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = dice.Next() % (MAX_VALUE + 1);
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            updateScale();
+            //Upon loading, the window must determine the size of controls,
+            //and then programatically create Rectangles and TextBoxes for each item,
+            //placing on the grid in the correct location
 
+            updateDrawingScale();
 
+            //update Grid.RowDefinition height for NUM_ITEMS
+            TxtGridOffset.Height = new GridLength(NUM_ITEMS * 4.0 - 2, GridUnitType.Star);
+
+            //create text boxes programatically for the integer values being sorted (for the number of items)
             textBoxes = new TextBox[NUM_ITEMS];
-            for (int i = 0; i < NUM_ITEMS; i++)
-            {
-                RowDefinition rowDef = new RowDefinition();
-                rowDef.Height = new GridLength(2.0 * HEIGHT);
-                TxtBoxGrid.RowDefinitions.Add(rowDef);
-                textBoxes[i] = new TextBox();
-                TxtBoxGrid.Children.Add(textBoxes[i]);
-                textBoxes[i].SetValue(Grid.RowProperty, i);
-            }
-
-
             bars = new Rectangle[NUM_ITEMS];
-
+            dataColors = new SolidColorBrush[NUM_ITEMS];
             for (int i = 0; i < NUM_ITEMS; i++)
             {
+                //create a Row in the proper Grid for each text box
+                RowDefinition rowDef = new RowDefinition();
+                //rowDef.Height = new GridLength(2.0 * HEIGHT);
+                rowDef.Height = new GridLength(1.0, GridUnitType.Star);
+                TxtBoxGrid.RowDefinitions.Add(rowDef);
+
+                textBoxes[i] = new TextBox();
+                textBoxes[i].TextAlignment = TextAlignment.Right;
+                TxtBoxGrid.Children.Add(textBoxes[i]);
+                textBoxes[i].SetValue(Grid.RowProperty, i); //attach i to the Grid.Row property, ie. <TextBox Grid.Row="i"/>
+
                 bars[i] = new Rectangle();
-                bars[i].Fill = blue;
+                dataColors[i] = violet;
+                //bars[i].Fill = violet;
                 SortCanvas.Children.Add(bars[i]);
             }
 
-            redrawRectangles(data);
+            syncRectanglesToData();
 
-            this.SizeChanged += Window_SizeChanged;
+            this.SizeChanged += Window_SizeChanged; //add event handler now that the Window is loaded
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-                updateScale();
-                redrawRectangles(data);
+            updateDrawingScale();
+            syncRectanglesToData();
         }
 
-        private void redrawRectangles(int[] data)
+        private void syncRectanglesToData()
         {
             for (int i = 0; i < NUM_ITEMS; i++)
             {
-                bars[i].Width = MIN_WIDTH + (data[i] * WIDTH_SCALE);
+                bars[i].Fill = dataColors[i];
+                bars[i].Width = ZERO_WIDTH + (data[i] * WIDTH_SCALE);
                 bars[i].Height = HEIGHT;
-                Canvas.SetLeft(bars[i], HEIGHT);
-                Canvas.SetTop(bars[i], i * 2 * HEIGHT);
-                bars[i].ToolTip = ((bars[i].Width - MIN_WIDTH) / WIDTH_SCALE);
+                Canvas.SetLeft(bars[i], HEIGHT); //set <Rectangle Canvas.Left="HEIGHT"/> property with HEIGHT as left margin
+                Canvas.SetTop(bars[i], i * 2 * HEIGHT); //use HEIGHT as height of rectangle, and equal spacing between them
+                bars[i].ToolTip = ((bars[i].Width - ZERO_WIDTH) / WIDTH_SCALE);
                 textBoxes[i].Text = data[i].ToString();
             }
         }
 
-        private void updateScale()
+        private void updateDrawingScale()
         {
-            HEIGHT = (int)SortCanvas.ActualHeight / (NUM_ITEMS * 2 + 1); //number of bars, with equal space in between for each one, plus the bottom/top margin
-            WIDTH_SCALE = (SortCanvas.ActualWidth - 2 * HEIGHT) / MAX_VALUE; //subtract HEIGHT as a left and right margin
+            HEIGHT = (int)(SortCanvas.ActualHeight / (NUM_ITEMS * 2)); //number of bars and equal space in between
+            WIDTH_SCALE = (SortCanvas.ActualWidth - (2.0 * HEIGHT)) / MAX_VALUE; //units: pixels/item. subtract HEIGHT as a left and right margin
         }
+
     }
 }
