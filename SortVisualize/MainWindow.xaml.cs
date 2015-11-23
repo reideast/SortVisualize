@@ -195,52 +195,9 @@ namespace SortVisualize
         private void SortDataMerge(ref int[] data, ref SolidColorBrush[] colors)
         {
             mergeSortRecursive(0, data.Length - 1, ref data, ref colors);
+            
 
-            int temp;
-            int largestIndex;
-            int total = data.Length;
-            for (int i = 0; i < total; i++)
-            {
-                largestIndex = 0;
-                colors[largestIndex] = green;
-                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
-                Thread.Sleep(ANIMATION_DELAY);
-
-                for (int j = 1; j < total - i; j++)
-                {
-                    colors[j] = blue;
-                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
-                    Thread.Sleep(ANIMATION_DELAY);
-
-                    if (data[j] >= data[largestIndex])
-                    {
-                        colors[largestIndex] = violet;
-                        largestIndex = j;
-                        colors[largestIndex] = green;
-                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
-                        Thread.Sleep(ANIMATION_DELAY);
-                    }
-                    else
-                    {
-                        colors[j] = violet;
-                    }
-                }
-
-                if (largestIndex != total - i - 1)
-                {
-                    colors[total - i - 1] = green;
-                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
-                    Thread.Sleep(ANIMATION_DELAY);
-
-                    temp = data[total - i - 1];
-                    data[total - i - 1] = data[largestIndex];
-                    data[largestIndex] = temp;
-                }
-                colors[largestIndex] = violet;
-                colors[total - i - 1] = blue; //set the location we just put the largest selected item into "blue" for inactive
-            }
-
-            for (int i = 0; i < total; i++)
+            for (int i = 0; i < data.Length; i++)
                 colors[i] = violet;
             this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
             this.Dispatcher.Invoke((Action)(() => { MergeSort.IsEnabled = true; }));
@@ -272,9 +229,66 @@ namespace SortVisualize
                 mergeSortRecursive(indexStart, (indexEnd - indexStart) / 2 + indexStart, ref dataSlice, ref colors);
                 mergeSortRecursive((indexEnd - indexStart) / 2 + indexStart + 1, indexEnd, ref dataSlice, ref colors);
 
-                //TODO: merge
+
+                for (int i = indexStart; i <= indexEnd; i++)
+                    colors[i] = green;
+                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                Thread.Sleep(ANIMATION_DELAY);
+
+                //merge using temporary array
+                int lower = indexStart;
+                int lowerMax = (indexEnd - indexStart) / 2 + indexStart;
+                int upper = (indexEnd - indexStart) / 2 + indexStart + 1;
+                int upperMax = indexEnd;
+
+                //pick out items in order
+                int[] properValues = new int[indexEnd - indexStart + 1];
+                int[] properOrder = new int[indexEnd - indexStart + 1]; //for animation purposes: to remember where the values are in the original array
+                for (int i = 0; i < properOrder.Length; i++)
+                {
+                    if ((upper > upperMax) || (lower <= lowerMax && data[lower] <= data[upper]))
+                    {
+                        properValues[i] = data[lower];
+                        properOrder[i] = lower;
+                        lower++;
+                    }
+                    else
+                    {
+                        properValues[i] = data[upper];
+                        properOrder[i] = upper;
+                        upper++;
+                    }
+                }
+
+                //wipe out visualization of values to show that they are being placed back in
+                for (int i = indexStart; i <= indexEnd; i++)
+                {
+                    data[i] = 0;
+                    colors[i] = green;
+                }
+                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                Thread.Sleep(ANIMATION_DELAY);
+
+                for (int i = 0; i < properValues.Length; i++)
+                {
+                    colors[i + indexStart] = blue;
+                    data[i + indexStart] = properValues[i];
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+                    
+                    //MessageBox.Show("");
+                }
+
                 //pointer math for each array?
             }
+        }
+
+        private string printArray(int[] arr)
+        {
+            StringBuilder result = new StringBuilder();
+            foreach (int item in arr)
+                result.Append(item + ",");
+            return result.ToString();
         }
 
         private void populateDataRandomly(ref int[] data)
