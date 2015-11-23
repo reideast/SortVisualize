@@ -34,7 +34,7 @@ namespace SortVisualize
         private int HEIGHT;
         private double WIDTH_SCALE;
         private const int ANIMATION_DELAY = 200; //milliseconds
-        
+
         private Rectangle[] bars;
         private TextBox[] textBoxes;
         private int[] data; //CHANGE THIS TO A local variable for each sort type?
@@ -73,37 +73,92 @@ namespace SortVisualize
             //MessageBox.Show("Yes, this thread actually launched. " + System.Threading.Thread.CurrentThread.ManagedThreadId);
             int temp;
             int total = data.Length;
-            for (int i = 1; i < total; i++)
+            bool swapOccured = true;
+            for (int i = 1; i < total && swapOccured; i++)
             {
+                swapOccured = false;
                 for (int j = 1; j < total - i + 1; j++)
                 {
-                    colors[j - 1] = green;
-                    //http://stackoverflow.com/questions/9732709/the-calling-thread-cannot-access-this-object-because-a-different-thread-owns-it
+                    colors[j] = blue;
+                    colors[j - 1] = blue;
+                    // http://stackoverflow.com/questions/9732709/the-calling-thread-cannot-access-this-object-because-a-different-thread-owns-it
                     this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                     Thread.Sleep(ANIMATION_DELAY);
 
                     if (data[j - 1] > data[j])
                     {
-                        colors[j] = blue;
-                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
-                        Thread.Sleep(ANIMATION_DELAY);
-
+                        swapOccured = true;
                         temp = data[j - 1];
                         data[j - 1] = data[j];
                         data[j] = temp;
 
                         colors[j] = green;
-                        colors[j - 1] = blue;
+                        colors[j - 1] = green;
                         this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                         Thread.Sleep(ANIMATION_DELAY);
-                        colors[j] = violet;
                     }
+                    colors[j] = violet;
                     colors[j - 1] = violet;
                 }
                 colors[total - i] = blue;
             }
             this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
             this.Dispatcher.Invoke((Action)(() => { BubbleSort.IsEnabled = true; }));
+        }
+
+        private void CombSort_Click(object sender, RoutedEventArgs e)
+        {
+            CombSort.IsEnabled = false; //gray-out button to show user that sort is in progress
+
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
+
+            ThreadStart threadStart = delegate () { SortDataComb(ref data, ref dataColors); };
+            Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quitst.Start();
+            t.Start();
+        }
+
+
+        private void SortDataComb(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            // Comb sort implemented via algorithm on https://en.wikipedia.org/wiki/Comb_sort
+            int gap = data.Length; //distance between items being compared (note: starts at Length, but first loop will actually shrink it down to gap/shrinkFactor, so no indexOutOfBounds possible)
+            double shrinkFactor = 1.3; // optimal shrink size from algorithm creators
+
+            int temp;
+            bool swapOccured = true;
+            while (!(gap == 1 && !swapOccured)) // only stop when gap has reached 1 and there are no more swaps
+            {
+                gap = (int)(gap / shrinkFactor); // reduce gap between items being compared to an integer value....
+                if (gap < 1) gap = 1; //...which is always 1 or more
+
+                swapOccured = false;
+                for (int i = 0; i + gap < data.Length; i++) //loop through, looking at indices [i] and [gap more than i]
+                {
+                    colors[i] = blue;
+                    colors[i + gap] = blue;
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+
+                    if (data[i] > data[i + gap])
+                    {
+                        swapOccured = true;
+                        temp = data[i];
+                        data[i] = data[i + gap];
+                        data[i + gap] = temp;
+
+                        colors[i] = green;
+                        colors[i + gap] = green;
+                        this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                        Thread.Sleep(ANIMATION_DELAY);
+                    }
+                    colors[i] = violet;
+                    colors[i + gap] = violet;
+                }
+            }
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            this.Dispatcher.Invoke((Action)(() => { CombSort.IsEnabled = true; }));
         }
 
 
@@ -195,7 +250,7 @@ namespace SortVisualize
         private void SortDataMerge(ref int[] data, ref SolidColorBrush[] colors)
         {
             mergeSortRecursive(0, data.Length - 1, ref data, ref colors);
-            
+
 
             for (int i = 0; i < data.Length; i++)
                 colors[i] = violet;
@@ -275,7 +330,7 @@ namespace SortVisualize
                     data[i + indexStart] = properValues[i];
                     this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
                     Thread.Sleep(ANIMATION_DELAY);
-                    
+
                     //MessageBox.Show("");
                 }
 
@@ -321,7 +376,7 @@ namespace SortVisualize
                 //rowDef.Height = new GridLength(2.0 * HEIGHT);
                 rowDef.Height = new GridLength(1.0, GridUnitType.Star);
                 TxtBoxGrid.RowDefinitions.Add(rowDef);
-                
+
                 textBoxes[i] = new TextBox();
                 textBoxes[i].TextAlignment = TextAlignment.Right;
                 TxtBoxGrid.Children.Add(textBoxes[i]);
@@ -340,8 +395,8 @@ namespace SortVisualize
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-                updateDrawingScale();
-                syncRectanglesToData();
+            updateDrawingScale();
+            syncRectanglesToData();
         }
 
         private void syncRectanglesToData()
@@ -360,7 +415,7 @@ namespace SortVisualize
 
         private void updateDrawingScale()
         {
-            HEIGHT = (int) (SortCanvas.ActualHeight / (NUM_ITEMS * 2)); //number of bars and equal space in between
+            HEIGHT = (int)(SortCanvas.ActualHeight / (NUM_ITEMS * 2)); //number of bars and equal space in between
             WIDTH_SCALE = (SortCanvas.ActualWidth - (2.0 * HEIGHT)) / MAX_VALUE; //units: pixels/item. subtract HEIGHT as a left and right margin
         }
 
