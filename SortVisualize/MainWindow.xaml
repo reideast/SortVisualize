@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SortVisualize"
         mc:Ignorable="d"
-        Title="Sort" Height="520" Width="400" Loaded="Window_Loaded">
+        Title="Sort" Height="575" Width="400" Loaded="Window_Loaded">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -52,9 +52,10 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Button x:Name="BubbleSort" Content="_Bubble Sort" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="BubbleSort_Click"/>
+            <Button x:Name="CombSort" Content="_Comb Sort" Grid.Column="1" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="CombSort_Click"/>
             <Button x:Name="SelectionSort" Content="_Selection Sort" Grid.Column="3" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="SelectionSort_Click"/>
             <Button x:Name="MergeSort" Content="_Merge Sort" Grid.Column="5" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="MergeSort_Click"/>
-            <Button x:Name="CombSort" Content="_Comb Sort" Grid.Column="1" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="CombSort_Click"/>
+            <Button x:Name="QuickSort" Content="_Quick Sort" Grid.Column="5" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="90" Click="QuickSort_Click"/>
         </Grid>
     </Grid>
 </Window>

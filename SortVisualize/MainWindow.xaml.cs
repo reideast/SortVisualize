@@ -1,20 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Windows.Media.Animation;
-using System.Timers;
 
 namespace SortVisualize
 {
@@ -28,12 +18,12 @@ namespace SortVisualize
         private SolidColorBrush blue = new SolidColorBrush(Colors.CornflowerBlue);
         private SolidColorBrush green = new SolidColorBrush(Colors.SpringGreen);
 
-        private const int NUM_ITEMS = 20;
+        private const int NUM_ITEMS = 32;
         private const int MAX_VALUE = 100;
         private const int ZERO_WIDTH = 2;
-        private int HEIGHT;
+        private double HEIGHT;
         private double WIDTH_SCALE;
-        private const int ANIMATION_DELAY = 200; //milliseconds
+        private const int ANIMATION_DELAY = 100; //milliseconds
 
         private Rectangle[] bars;
         private TextBox[] textBoxes;
@@ -102,6 +92,9 @@ namespace SortVisualize
                 }
                 colors[total - i] = blue;
             }
+
+            for (int i = 0; i < data.Length; i++)
+                colors[i] = violet;
             this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
             this.Dispatcher.Invoke((Action)(() => { BubbleSort.IsEnabled = true; }));
         }
@@ -238,10 +231,7 @@ namespace SortVisualize
             populateDataRandomly(ref data);
             syncRectanglesToData();
 
-            ThreadStart threadStart = delegate ()
-            {
-                SortDataMerge(ref data, ref dataColors);
-            };
+            ThreadStart threadStart = delegate () { SortDataMerge(ref data, ref dataColors); };
             Thread t = new Thread(threadStart);
             t.IsBackground = true; //necessary for thread to quit when the GUI thread quits
             t.Start();
@@ -250,8 +240,7 @@ namespace SortVisualize
         private void SortDataMerge(ref int[] data, ref SolidColorBrush[] colors)
         {
             mergeSortRecursive(0, data.Length - 1, ref data, ref colors);
-
-
+            
             for (int i = 0; i < data.Length; i++)
                 colors[i] = violet;
             this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
@@ -337,6 +326,115 @@ namespace SortVisualize
                 //pointer math for each array?
             }
         }
+        
+        private void QuickSort_Click(object sender, RoutedEventArgs e)
+        {
+            QuickSort.IsEnabled = false;
+
+            populateDataRandomly(ref data);
+            syncRectanglesToData();
+
+            ThreadStart threadStart = delegate () { SortDataQuick(ref data, ref dataColors); };
+            Thread t = new Thread(threadStart);
+            t.IsBackground = true; //necessary for thread to quit when the GUI thread quits
+            t.Start();
+        }
+
+        private void SortDataQuick(ref int[] data, ref SolidColorBrush[] colors)
+        {
+            quickSortRecursive(0, data.Length - 1, ref data, ref colors);
+
+            for (int i = 0; i < data.Length; i++)
+                colors[i] = violet;
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            this.Dispatcher.Invoke((Action)(() => { QuickSort.IsEnabled = true; }));
+
+        }
+
+        private void quickSortRecursive(int indexStart, int indexEnd, ref int[] dataSlice, ref SolidColorBrush[] colors)
+        {
+            /*
+            https://en.wikipedia.org/wiki/Quicksort
+            quicksort(A, lo, hi)
+              if lo < hi
+                p = partition(A, lo, hi)
+                quicksort(A, lo, p - 1)
+                quicksort(A, p + 1, hi)
+
+            partition(A, lo, hi)
+                pivot = A[hi]
+                i = lo #place for swapping
+                for j = lo to hi - 1
+                    if A[j] <= pivot
+                        swap A[i] with A[j]
+                        i = i + 1
+                swap A[i] with A[hi]
+                return i
+            */
+
+            //show what range is being tested in this recursion
+            for (int i = indexStart; i <= indexEnd; i++)
+                colors[i] = blue;
+            this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+            Thread.Sleep(ANIMATION_DELAY);
+            
+            if (indexStart < indexEnd)
+            {
+                int partitionIndex = quickSortPartition(indexStart, indexEnd, ref data, ref colors); //partitioning is where the swapping takes place
+                for (int i = indexStart; i <= indexEnd; i++)
+                    colors[i] = violet;
+                quickSortRecursive(indexStart, partitionIndex - 1, ref data, ref colors);
+                quickSortRecursive(partitionIndex + 1, indexEnd, ref data, ref colors);
+            }
+        }
+
+        private int quickSortPartition(int indexStart, int indexEnd, ref int[] data, ref SolidColorBrush[] colors)
+        {
+            /*
+            partition(A, lo, hi)
+                pivot = A[hi]
+                i = lo #place for swapping
+                for j = lo to hi - 1
+                    if A[j] <= pivot
+                        swap A[i] with A[j]
+                        i = i + 1
+                swap A[i] with A[hi]
+                return i
+            */
+            int temp;
+            int pivotDatum = data[indexEnd]; // save the data magnitude we are using for pivot in a temporary variable (last point chosen as pivotDatum is per "Lomuto partition scheme")
+            colors[indexEnd] = green;
+            int currPivotIndex = indexStart; // index that will become our actual halfway point (all data less than pivotDatum will go before halfway point)
+            for (int i = indexStart; i <= indexEnd - 1; i++) // from indexStart to one less than index of pivotDatum
+            {
+                colors[i] = green;
+                this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                Thread.Sleep(ANIMATION_DELAY);
+
+                if (data[i] <= pivotDatum)
+                {
+                    colors[currPivotIndex] = green;
+                    // swap data[j] and data[currPivotIndex]
+                    temp = data[currPivotIndex];
+                    data[currPivotIndex] = data[i];
+                    data[i] = temp;
+
+                    this.Dispatcher.Invoke((Action)(() => syncRectanglesToData()), System.Windows.Threading.DispatcherPriority.Render);
+                    Thread.Sleep(ANIMATION_DELAY);
+                    colors[currPivotIndex] = blue;
+
+                    currPivotIndex++;
+                }
+
+                colors[i] = blue;
+            }
+            // swap pivotDatum into the actual pivot index
+            //temp = data[indexEnd];
+            data[indexEnd] = data[currPivotIndex];
+            data[currPivotIndex] = pivotDatum; //temp
+
+            return currPivotIndex; //inform quick sort we have decided on a pivot index
+        }
 
         private string printArray(int[] arr)
         {
@@ -415,9 +513,8 @@ namespace SortVisualize
 
         private void updateDrawingScale()
         {
-            HEIGHT = (int)(SortCanvas.ActualHeight / (NUM_ITEMS * 2)); //number of bars and equal space in between
+            HEIGHT = (SortCanvas.ActualHeight / (NUM_ITEMS * 2)); //number of bars and equal space in between
             WIDTH_SCALE = (SortCanvas.ActualWidth - (2.0 * HEIGHT)) / MAX_VALUE; //units: pixels/item. subtract HEIGHT as a left and right margin
         }
-
     }
 }
